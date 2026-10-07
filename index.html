@@ -85,9 +85,9 @@
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/30 text-amber-200 border border-amber-400/30">
-                    画像相場適用
-                </span>
+                <button type="button" onclick="openRateImageViewer()" class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/30 text-amber-200 border border-amber-400/30 active:scale-95">
+                    <span id="headerRateImageBadge" class="font-mono">相場画像 未登録</span>
+                </button>
             </div>
         </header>
 
@@ -571,9 +571,56 @@
                     </button>
                 </div>
 
+                <div class="bg-amber-50/70 rounded-xl p-2.5 border border-amber-200 space-y-2">
+                    <div class="text-[10px] font-black text-amber-900 flex items-center gap-1">
+                        <i data-lucide="search" class="w-3 h-3"></i>
+                        <span>相場画像（毎回アップロードして登録・全端末で共有）</span>
+                    </div>
+                    <div class="text-[9px] text-amber-800 leading-relaxed">本日の買取表画像を登録すると、アプリ内でいつでも確認でき、ヘッダーの「相場画像」から拡大表示できます。管理者ログイン中は全端末に自動共有されます。</div>
+                    <input type="file" accept="image/*" id="rateImageInput" onchange="onRateImageSelected(event)" class="block w-full text-[10px] text-slate-600 file:mr-2 file:py-1.5 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-amber-500 file:text-white">
+                    <div id="rateImageEmpty" class="text-[9px] text-slate-400">画像は未登録です。</div>
+                    <div id="rateImagePreviewWrap" class="hidden space-y-1.5">
+                        <img id="rateImagePreview" alt="登録中の相場画像" class="w-full max-h-56 object-contain rounded-lg border border-amber-200 bg-white">
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <button type="button" onclick="openRateImageViewer()" class="py-1.5 bg-white border border-amber-300 text-amber-800 font-black rounded-lg text-[10px] flex items-center justify-center gap-1">
+                                <i data-lucide="search" class="w-3 h-3"></i><span>拡大表示</span>
+                            </button>
+                            <button type="button" onclick="clearRateImage()" class="py-1.5 bg-white border border-rose-300 text-rose-700 font-black rounded-lg text-[10px] flex items-center justify-center gap-1">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i><span>画像を削除</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="space-y-1">
                     <div class="text-[10px] font-black text-slate-600">手順2: 各品位の単価を直接修正（任意・画像の表どおりに）</div>
                     <div id="rateEditorList" class="space-y-2 max-h-56 overflow-y-auto"></div>
+                </div>
+
+                <div class="bg-teal-50/70 rounded-xl p-2.5 border border-teal-200 space-y-2">
+                    <div class="text-[10px] font-black text-teal-900 flex items-center gap-1">
+                        <i data-lucide="layers" class="w-3 h-3"></i>
+                        <span>コンビ配合の自動計算（任意）</span>
+                    </div>
+                    <div class="text-[9px] text-teal-800 leading-relaxed">金の割合（％）を入れて「再計算」を押すと、K18相場とPt相場からコンビ6種を自動計算します。Kメイン＝金が多い／半々＝同量／Ptメイン＝Ptが多い。</div>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <div class="bg-white p-1.5 rounded-lg border border-teal-200">
+                            <div class="text-[9px] font-black text-teal-800 mb-0.5">Kメイン 金%</div>
+                            <input type="number" inputmode="decimal" min="0" max="100" step="0.1" id="combi_ratio_k" class="w-full bg-slate-50 border border-teal-200 rounded px-1.5 py-1 text-right text-xs font-black text-teal-800 font-mono focus:outline-none">
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-teal-200">
+                            <div class="text-[9px] font-black text-teal-800 mb-0.5">半々 金%</div>
+                            <input type="number" inputmode="decimal" min="0" max="100" step="0.1" id="combi_ratio_half" class="w-full bg-slate-50 border border-teal-200 rounded px-1.5 py-1 text-right text-xs font-black text-teal-800 font-mono focus:outline-none">
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-teal-200">
+                            <div class="text-[9px] font-black text-teal-800 mb-0.5">Ptメイン 金%</div>
+                            <input type="number" inputmode="decimal" min="0" max="100" step="0.1" id="combi_ratio_pt" class="w-full bg-slate-50 border border-teal-200 rounded px-1.5 py-1 text-right text-xs font-black text-teal-800 font-mono focus:outline-none">
+                        </div>
+                    </div>
+                    <button onclick="autoCalcCombi()" type="button" class="w-full py-2 bg-teal-600 active:scale-[0.98] text-white font-black rounded-xl text-[11px] shadow-sm flex items-center justify-center gap-1">
+                        <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                        <span>K18・Pt相場からコンビ6種を再計算</span>
+                    </button>
                 </div>
 
                 <button onclick="saveRatesFromEditor()" type="button" class="w-full py-2.5 bg-emerald-600 active:scale-[0.98] text-white font-black rounded-xl text-sm shadow-sm flex items-center justify-center gap-1.5">
@@ -621,6 +668,24 @@
 
 
                 <button onclick="closeRatePanel()" type="button" class="w-full py-2 text-slate-400 text-[11px] font-bold">キャンセルして閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相場画像ビューア -->
+    <div id="rateImageViewer" class="hidden fixed inset-0 z-[60] bg-slate-900/90 overflow-auto">
+        <div class="min-h-full flex flex-col">
+            <div class="sticky top-0 z-10 bg-slate-900/95 text-white px-3 py-2 flex items-center justify-between">
+                <span class="text-xs font-black">本日の相場表</span>
+                <button type="button" onclick="closeRateImageViewer()" class="w-7 h-7 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white/90">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+            <div class="p-3 flex-1 flex items-start justify-center">
+                <img id="rateImageViewerImg" alt="相場画像" class="max-w-full rounded-xl bg-white">
+            </div>
+            <div class="sticky bottom-0 bg-slate-900/95 p-3">
+                <button type="button" onclick="closeRateImageViewer()" class="w-full py-2 bg-white text-slate-800 font-black rounded-xl text-xs">閉じる</button>
             </div>
         </div>
     </div>
@@ -724,44 +789,49 @@
         ];
 
         const GOLD_S_RATES = /*__RATES__*/ {
-            gold_ig: 22700, k24: 22300, k23: 21200, k22: 20200, 'k21.6': 19900, k20: 18400, k18: 17000, k17: 14300, k14: 12500, k12: 10200, k10: 8800, k9: 7800, k8: 5600, k5: 2800,
-            pt_ig: 9200, pt1000: 9100, pt950: 8600, pt900: 8900, pt850: 8400, 'pt_pm': 7800,
-            pt850_k18_half: 12300, pt900_k18_half: 12500,
-            silver_ig: 320, sv1000: 300, sv925: 270
+            gold_ig: 23052, k24: 22594, k23: 21530, k22: 20474, 'k21.6': 20174, k20: 18676, k18: 17265, k17: 14522, k14: 12685, k12: 10377, k10: 8994, k9: 7957, k8: 5765, k5: 2882,
+            pt_ig: 9353, pt1000: 9162, pt950: 8742, pt900: 8971, pt850: 8505, 'pt_pm': 7936,
+            pt850_k18_k: 15968, pt850_k18_half: 12465, pt850_k18_pt: 8611,
+            pt900_k18_k: 16015, pt900_k18_half: 12698, pt900_k18_pt: 9022,
+            silver_ig: 334, sv1000: 317, sv925: 285
         } /*__RATES_END__*/;
 
         function floorGoldPt(val) { return Math.floor(val / 100) * 100; }
         function floorSilver(val) { return Math.floor(val / 10) * 10; }
 
         let PURITIES = [
-            { id: 'gold_ig', label: '金IG', metal: 'gold', defaultPrice: 22700, isIG: true },
-            { id: 'k24', label: 'K24', metal: 'gold', defaultPrice: 22300 },
-            { id: 'k23', label: 'K23', metal: 'gold', defaultPrice: 21200 },
-            { id: 'k22', label: 'K22', metal: 'gold', defaultPrice: 20200 },
-            { id: 'k21.6', label: 'K21.6', metal: 'gold', defaultPrice: 19900 },
-            { id: 'k20', label: 'K20', metal: 'gold', defaultPrice: 18400 },
-            { id: 'k18', label: 'K18', metal: 'gold', defaultPrice: 17000 },
-            { id: 'k17', label: 'K17', metal: 'gold', defaultPrice: 14300 },
-            { id: 'k14', label: 'K14', metal: 'gold', defaultPrice: 12500 },
-            { id: 'k12', label: 'K12', metal: 'gold', defaultPrice: 10200 },
-            { id: 'k10', label: 'K10', metal: 'gold', defaultPrice: 8800 },
-            { id: 'k9', label: 'K9', metal: 'gold', defaultPrice: 7800 },
-            { id: 'k8', label: 'K8', metal: 'gold', defaultPrice: 5600 },
-            { id: 'k5', label: 'K5', metal: 'gold', defaultPrice: 2800 },
+            { id: 'gold_ig', label: '金IG', metal: 'gold', defaultPrice: 23052, isIG: true },
+            { id: 'k24', label: 'K24', metal: 'gold', defaultPrice: 22594 },
+            { id: 'k23', label: 'K23', metal: 'gold', defaultPrice: 21530 },
+            { id: 'k22', label: 'K22', metal: 'gold', defaultPrice: 20474 },
+            { id: 'k21.6', label: 'K21.6', metal: 'gold', defaultPrice: 20174 },
+            { id: 'k20', label: 'K20', metal: 'gold', defaultPrice: 18676 },
+            { id: 'k18', label: 'K18', metal: 'gold', defaultPrice: 17265 },
+            { id: 'k17', label: 'K17', metal: 'gold', defaultPrice: 14522 },
+            { id: 'k14', label: 'K14', metal: 'gold', defaultPrice: 12685 },
+            { id: 'k12', label: 'K12', metal: 'gold', defaultPrice: 10377 },
+            { id: 'k10', label: 'K10', metal: 'gold', defaultPrice: 8994 },
+            { id: 'k9', label: 'K9', metal: 'gold', defaultPrice: 7957 },
+            { id: 'k8', label: 'K8', metal: 'gold', defaultPrice: 5765 },
+            { id: 'k5', label: 'K5', metal: 'gold', defaultPrice: 2882 },
             
-            { id: 'pt_ig', label: 'PtIG', metal: 'pt', defaultPrice: 9200, isIG: true },
-            { id: 'pt1000', label: 'Pt1000', metal: 'pt', defaultPrice: 9100 },
-            { id: 'pt950', label: 'Pt950', metal: 'pt', defaultPrice: 8600 },
-            { id: 'pt900', label: 'Pt900', metal: 'pt', defaultPrice: 8900 },
-            { id: 'pt850', label: 'Pt850', metal: 'pt', defaultPrice: 8400 },
-            { id: 'pt_pm', label: 'Pt・Pm', metal: 'pt', defaultPrice: 7800 },
+            { id: 'pt_ig', label: 'PtIG', metal: 'pt', defaultPrice: 9353, isIG: true },
+            { id: 'pt1000', label: 'Pt1000', metal: 'pt', defaultPrice: 9162 },
+            { id: 'pt950', label: 'Pt950', metal: 'pt', defaultPrice: 8742 },
+            { id: 'pt900', label: 'Pt900', metal: 'pt', defaultPrice: 8971 },
+            { id: 'pt850', label: 'Pt850', metal: 'pt', defaultPrice: 8505 },
+            { id: 'pt_pm', label: 'Pt・Pm', metal: 'pt', defaultPrice: 7936 },
 
-            { id: 'pt900_k18_half', label: 'Pt900/K18 半々', metal: 'combi', defaultPrice: 12500 },
-            { id: 'pt850_k18_half', label: 'Pt850/K18 半々', metal: 'combi', defaultPrice: 12300 },
+                        { id: 'pt850_k18_k', label: 'Pt850/K18 Kメイン', metal: 'combi', defaultPrice: 15968 },
+            { id: 'pt850_k18_half', label: 'Pt850/K18 半々', metal: 'combi', defaultPrice: 12465 },
+            { id: 'pt850_k18_pt', label: 'Pt850/K18 Ptメイン', metal: 'combi', defaultPrice: 8611 },
+            { id: 'pt900_k18_k', label: 'Pt900/K18 Kメイン', metal: 'combi', defaultPrice: 16015 },
+            { id: 'pt900_k18_half', label: 'Pt900/K18 半々', metal: 'combi', defaultPrice: 12698 },
+            { id: 'pt900_k18_pt', label: 'Pt900/K18 Ptメイン', metal: 'combi', defaultPrice: 9022 },
             
-            { id: 'silver_ig', label: '銀IG', metal: 'silver', defaultPrice: 320, isIG: true },
-            { id: 'sv1000', label: 'Sv1000', metal: 'silver', defaultPrice: 300 },
-            { id: 'sv925', label: 'Sv925', metal: 'silver', defaultPrice: 270 }
+            { id: 'silver_ig', label: '銀IG', metal: 'silver', defaultPrice: 334, isIG: true },
+            { id: 'sv1000', label: 'Sv1000', metal: 'silver', defaultPrice: 317 },
+            { id: 'sv925', label: 'Sv925', metal: 'silver', defaultPrice: 285 }
         ];
 
         // ===== クラウド同期（Firebase Firestore REST・追加ライブラリ不要） =====
@@ -769,7 +839,8 @@
             enabled: true,
             projectId: 'gold-s-too',
             apiKey: 'AIzaSyCt7paESstypgRcU1skHJHXBGLK597VU20',
-            docPath: 'rates/main'
+            docPath: 'rates/main',
+            imageDocPath: 'rates/image'
         };
         const CLOUD_LS_KEY = 'golds_cloud_auth_v1';
         const CLOUD_POLL_MS = 15000;
@@ -792,6 +863,7 @@
         async function cloudFetchRates() {
             if (!cloudReady()) return null;
             const res = await fetch(cloudDocUrl() + '?key=' + encodeURIComponent(CLOUD_CONFIG.apiKey), { cache: 'no-store' });
+            if (res.status === 404) return null;
             if (!res.ok) throw new Error('read ' + res.status);
             const doc = await res.json();
             const raw = (doc && doc.fields && doc.fields.json) ? doc.fields.json.stringValue : null;
@@ -835,11 +907,39 @@
             if (!res.ok) { const t = await res.text(); throw new Error('write ' + res.status + ' ' + String(t).slice(0, 140)); }
             return true;
         }
+        function cloudImageDocUrl() {
+            return 'https://firestore.googleapis.com/v1/projects/' + CLOUD_CONFIG.projectId +
+                '/databases/(default)/documents/' + (CLOUD_CONFIG.imageDocPath || 'rates/image');
+        }
+        async function cloudFetchImage() {
+            if (!cloudReady()) return null;
+            try {
+                const res = await fetch(cloudImageDocUrl() + '?key=' + encodeURIComponent(CLOUD_CONFIG.apiKey), { cache: 'no-store' });
+                if (!res.ok) return null;
+                const doc = await res.json();
+                return (doc && doc.fields && doc.fields.data) ? doc.fields.data.stringValue : null;
+            } catch (e) { return null; }
+        }
+        async function cloudWriteImage(dataUrl) {
+            if (!cloudReady()) return;
+            const token = await cloudGetToken();
+            if (!token) return;
+            const body = { fields: { data: { stringValue: dataUrl }, savedAt: { stringValue: new Date().toISOString() } } };
+            const res = await fetch(cloudImageDocUrl() + '?key=' + encodeURIComponent(CLOUD_CONFIG.apiKey) + '&updateMask.fieldPaths=data&updateMask.fieldPaths=savedAt', {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(body) });
+            if (!res.ok) throw new Error('img write ' + res.status);
+            return true;
+        }
+        async function cloudPushImage() {
+            try { if (rateImageData) { await cloudWriteImage(rateImageData); showToast('相場画像を全端末に共有しました'); } }
+            catch (e) { showToast('画像の共有に失敗しました'); }
+        }
         async function loadRatesFromCloud(manual) {
             if (!cloudReady()) { if (manual) showToast('クラウド未設定です（CLOUD_CONFIG を設定してください）'); return; }
             try {
                 const remote = await cloudFetchRates();
-                if (!remote) { if (manual) showToast('クラウドに相場がまだありません'); updateCloudUI(); return; }
+                if (!remote) { if (manual) showToast('クラウドに相場がまだありません（管理者ログイン→「保存して適用する」で初回登録）'); updateCloudUI(); return; }
                 const stamp = remote.savedAt || '';
                 if (cloudLastApplied && stamp && stamp === cloudLastApplied) { if (manual) showToast('最新の相場です'); return; }
                 cloudLastApplied = stamp;
@@ -866,7 +966,7 @@
         function startCloudPolling() {
             if (!cloudReady() || cloudPollTimer) return;
             cloudPollTimer = setInterval(function () { loadRatesFromCloud(false); }, CLOUD_POLL_MS);
-            document.addEventListener('visibilitychange', function () { if (!document.hidden) loadRatesFromCloud(false); });
+            document.addEventListener('visibilitychange', function () { if (!document.hidden) { loadRatesFromCloud(false); loadImageFromCloud(false); } });
         }
         async function cloudLoginFromPanel() {
             if (!cloudReady()) { showToast('クラウド未設定です（CLOUD_CONFIG を設定してください）'); return; }
@@ -887,7 +987,7 @@
             if (st) {
                 if (!cloudReady()) st.innerText = '未設定：CLOUD_CONFIG に Firebase の projectId と apiKey を入れ、enabled を true にすると有効になります。';
                 else if (cloudIsSignedIn()) st.innerText = '管理者ログイン中（' + (((cloudAuthLoad() || {}).email) || '') + '）。「保存して適用する」で全端末に反映されます。';
-                else st.innerText = '読み取りは全端末で有効です。更新を全端末に反映するには管理者ログインが必要です。';
+                else st.innerText = '設定済み。読み取りは全端末で有効です。相場や画像を全端末に反映するには管理者ログインしてください。';
             }
             const box = document.getElementById('cloudLoginBox');
             if (box) { if (cloudIsSignedIn()) box.classList.add('hidden'); else box.classList.remove('hidden'); }
@@ -906,6 +1006,100 @@
             return { rates: Object.assign({}, DEFAULT_RATES), savedAt: BUILTIN_SAVED_AT || null };
         })();
         Object.assign(GOLD_S_RATES, RATE_STATE.rates);
+
+        // ===== 相場画像（毎回アップロードして更新・全端末で共有） =====
+        const RATE_IMAGE_LS_KEY = 'golds_rate_image_v1';
+        const BUILTIN_RATE_IMAGE = /*__RATEIMG__*/ null /*__RATEIMG_END__*/;
+        let rateImageData = BUILTIN_RATE_IMAGE || null;
+
+        function loadRateImage() {
+            let stored = null;
+            try { stored = localStorage.getItem(RATE_IMAGE_LS_KEY); } catch (e) {}
+            rateImageData = stored || BUILTIN_RATE_IMAGE || null;
+            renderRateImageUI();
+        }
+        function applyRateImage(data, save) {
+            rateImageData = data || null;
+            if (save) {
+                try { if (rateImageData) localStorage.setItem(RATE_IMAGE_LS_KEY, rateImageData); else localStorage.removeItem(RATE_IMAGE_LS_KEY); } catch (e) {}
+            }
+            renderRateImageUI();
+        }
+        function renderRateImageUI() {
+            const img = document.getElementById('rateImagePreview');
+            const wrap = document.getElementById('rateImagePreviewWrap');
+            const none = document.getElementById('rateImageEmpty');
+            const badge = document.getElementById('headerRateImageBadge');
+            if (rateImageData) {
+                if (img) img.src = rateImageData;
+                if (wrap) wrap.classList.remove('hidden');
+                if (none) none.classList.add('hidden');
+                if (badge) badge.innerText = '相場画像 あり';
+            } else {
+                if (img) img.removeAttribute('src');
+                if (wrap) wrap.classList.add('hidden');
+                if (none) none.classList.remove('hidden');
+                if (badge) badge.innerText = '相場画像 未登録';
+            }
+        }
+        function onRateImageSelected(ev) {
+            const f = ev && ev.target && ev.target.files && ev.target.files[0];
+            if (!f) return;
+            showToast('画像を読み込み中…');
+            compressRateImage(f, function (dataUrl) {
+                applyRateImage(dataUrl, true);
+                showToast('相場画像を登録しました');
+                if (cloudIsSignedIn()) cloudPushImage();
+            });
+        }
+        function compressRateImage(file, cb) {
+            const reader = new FileReader();
+            reader.onload = function () {
+                const src = reader.result;
+                const im = new Image();
+                im.onload = function () {
+                    let w = im.width, h = im.height;
+                    const maxW = 1100;
+                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+                    const cv = document.createElement('canvas');
+                    cv.width = w; cv.height = h;
+                    const ctx = cv.getContext('2d');
+                    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+                    ctx.drawImage(im, 0, 0, w, h);
+                    let q = 0.72, out = cv.toDataURL('image/jpeg', q);
+                    while (out.length > 900000 && q > 0.4) { q -= 0.08; out = cv.toDataURL('image/jpeg', q); }
+                    cb(out);
+                };
+                im.onerror = function () { cb(src); };
+                im.src = src;
+            };
+            reader.readAsDataURL(file);
+        }
+        function openRateImageViewer() {
+            if (!rateImageData) { showToast('相場画像はまだ登録されていません'); return; }
+            const ov = document.getElementById('rateImageViewer');
+            const im = document.getElementById('rateImageViewerImg');
+            if (im) im.src = rateImageData;
+            if (ov) { ov.classList.remove('hidden'); refreshIcons(); }
+        }
+        function closeRateImageViewer() {
+            const ov = document.getElementById('rateImageViewer');
+            if (ov) ov.classList.add('hidden');
+        }
+        function clearRateImage() {
+            if (!confirm('登録中の相場画像を削除しますか？')) return;
+            applyRateImage(null, true);
+            showToast('相場画像を削除しました');
+        }
+        async function loadImageFromCloud(manual) {
+            if (!cloudReady()) return;
+            try {
+                const remote = await cloudFetchImage();
+                if (!remote || remote === rateImageData) { if (manual) showToast('クラウドに新しい画像はありません'); return; }
+                applyRateImage(remote, true);
+                if (manual) showToast('クラウドの相場画像を取得しました');
+            } catch (e) { if (manual) showToast('画像の取得に失敗しました'); }
+        }
 
         let selectedPurity = PURITIES[6];
         let items = [];
@@ -1557,6 +1751,8 @@
                 const el = document.getElementById('re_' + k);
                 if (el && RATE_STATE.rates[k] !== undefined) el.value = RATE_STATE.rates[k];
             });
+            renderRateImageUI();
+            prefillCombiRatios();
         }
         function autoCalcFromIG() {
             const readV = id => Math.max(0, parseFloat((document.getElementById(id) || {}).value) || 0);
@@ -1574,6 +1770,39 @@
                 el.value = floorFn(input * ratio);
             });
             showToast('IG相場から全品位を自動計算しました');
+        }
+        function readEditorVal(id) { const el = document.getElementById('re_' + id); return el ? parseFloat(el.value) : NaN; }
+        function setEditorVal(id, v) { const el = document.getElementById('re_' + id); if (el) el.value = Math.round(v); }
+        function prefillCombiRatios() {
+            const k18 = readEditorVal('k18');
+            [['combi_ratio_k', 'pt850_k18_k'], ['combi_ratio_half', 'pt850_k18_half'], ['combi_ratio_pt', 'pt850_k18_pt']].forEach(function (t) {
+                const out = document.getElementById(t[0]);
+                if (!out || out.value) return;
+                const c = readEditorVal(t[1]), pt = readEditorVal('pt850');
+                if (!isFinite(c) || !isFinite(k18) || !isFinite(pt) || k18 === pt) { out.value = ''; return; }
+                out.value = Math.round(((c - pt) / (k18 - pt)) * 1000) / 10;
+            });
+        }
+        function autoCalcCombi() {
+            const k18 = readEditorVal('k18'), p850 = readEditorVal('pt850'), p900 = readEditorVal('pt900');
+            const rk = parseFloat((document.getElementById('combi_ratio_k') || {}).value);
+            const rh = parseFloat((document.getElementById('combi_ratio_half') || {}).value);
+            const rp = parseFloat((document.getElementById('combi_ratio_pt') || {}).value);
+            if (!isFinite(k18) || k18 <= 0) { showToast('K18の単価が未入力です'); return; }
+            let any = false;
+            function calc(pt, pct) {
+                if (!isFinite(pt) || !isFinite(pct)) return null;
+                const g = Math.max(0, Math.min(1, pct / 100));
+                return Math.round(g * k18 + (1 - g) * pt);
+            }
+            function put(comboId, val) { if (val !== null && isFinite(val)) { setEditorVal(comboId, val); any = true; } }
+            put('pt850_k18_k', calc(p850, rk));
+            put('pt850_k18_half', calc(p850, rh));
+            put('pt850_k18_pt', calc(p850, rp));
+            put('pt900_k18_k', calc(p900, rk));
+            put('pt900_k18_half', calc(p900, rh));
+            put('pt900_k18_pt', calc(p900, rp));
+            showToast(any ? 'コンビ6種を再計算しました（「保存して適用する」で確定）' : '配合％とK18・Pt850/900の単価を入力してください');
         }
         function applyRatesEverywhere() {
             Object.assign(GOLD_S_RATES, RATE_STATE.rates);
@@ -1601,6 +1830,7 @@
             closeRatePanel();
             showToast('✅ 相場を保存・適用しました');
             cloudPushCurrentRates();
+            cloudPushImage();
         }
         function resetRates() {
             if (!confirm('ファイル内蔵の初期相場に戻しますか？')) return;
@@ -1621,6 +1851,8 @@
             let src = PRISTINE_SOURCE;
             src = spliceBetween(src, '/*__RATES__*/', '/*__RATES_END__*/', ' ' + JSON.stringify(RATE_STATE.rates) + ' ');
             src = spliceBetween(src, '/*__STAMP__*/', '/*__STAMP_END__*/', ' ' + JSON.stringify(stamp) + ' ');
+            const imgForFile = rateImageData || BUILTIN_RATE_IMAGE || null;
+            if (imgForFile) src = spliceBetween(src, '/*__RATEIMG__*/', '/*__RATEIMG_END__*/', ' ' + JSON.stringify(imgForFile) + ' ');
             const d = new Date(stamp);
             const mm = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2);
             const fname = 'GOLD-S相場' + mm + dd + '.html';
@@ -1654,8 +1886,9 @@
             selectGem(GEM_DATABASE[0], false);
             recalculateGemWeight();
             refreshIcons();
+            loadRateImage();
             updateCloudUI();
-            if (cloudReady()) { loadRatesFromCloud(false); startCloudPolling(); }
+            if (cloudReady()) { loadRatesFromCloud(false); loadImageFromCloud(false); startCloudPolling(); }
         });
     </script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
