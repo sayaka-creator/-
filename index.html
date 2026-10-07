@@ -593,6 +593,32 @@
                 </div>
 
                 <div class="text-[9px] text-slate-400 leading-relaxed">「更新済ファイルを作成」で、新しい相場を組み込んだHTMLが共有シートに渡ります。そのままLINEに送ると、受け取った人も新相場でそのまま使えます。</div>
+                <div class="bg-sky-50 rounded-xl p-2.5 border border-sky-200 space-y-2">
+                    <div class="text-[10px] font-black text-sky-900 flex items-center gap-1">
+                        <i data-lucide="cloud" class="w-3 h-3"></i>
+                        <span>クラウド同期（全端末で相場を共有）</span>
+                    </div>
+                    <div id="cloudStatusText" class="text-[9px] text-sky-800 leading-relaxed">未設定</div>
+                    <div id="cloudLoginBox" class="space-y-1.5">
+                        <input type="email" id="cloudEmailInput" autocomplete="username" placeholder="管理者メールアドレス" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none">
+                        <input type="password" id="cloudPassInput" autocomplete="current-password" placeholder="パスワード" class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none">
+                        <button onclick="cloudLoginFromPanel()" type="button" class="w-full py-2 bg-sky-600 active:scale-[0.98] text-white font-black rounded-xl text-[11px] shadow-sm flex items-center justify-center gap-1">
+                            <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+                            <span>管理者ログイン</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button onclick="loadRatesFromCloud(true)" type="button" class="py-2 bg-white border border-sky-300 active:scale-[0.98] text-sky-800 font-black rounded-xl text-[11px] flex items-center justify-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                            <span>今すぐ取得</span>
+                        </button>
+                        <button onclick="cloudLogout()" type="button" class="py-2 bg-white border border-slate-300 active:scale-[0.98] text-slate-600 font-black rounded-xl text-[11px] flex items-center justify-center gap-1">
+                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                            <span>ログアウト</span>
+                        </button>
+                    </div>
+                </div>
+
 
                 <button onclick="closeRatePanel()" type="button" class="w-full py-2 text-slate-400 text-[11px] font-bold">キャンセルして閉じる</button>
             </div>
@@ -737,6 +763,135 @@
             { id: 'sv1000', label: 'Sv1000', metal: 'silver', defaultPrice: 300 },
             { id: 'sv925', label: 'Sv925', metal: 'silver', defaultPrice: 270 }
         ];
+
+        // ===== クラウド同期（Firebase Firestore REST・追加ライブラリ不要） =====
+        const CLOUD_CONFIG = {
+            enabled: false,
+            projectId: 'YOUR_PROJECT_ID',
+            apiKey: 'YOUR_WEB_API_KEY',
+            docPath: 'rates/main'
+        };
+        const CLOUD_LS_KEY = 'golds_cloud_auth_v1';
+        const CLOUD_POLL_MS = 15000;
+        let cloudPollTimer = null;
+        let cloudLastApplied = null;
+
+        function cloudReady() {
+            return !!(CLOUD_CONFIG.enabled && CLOUD_CONFIG.projectId && CLOUD_CONFIG.apiKey &&
+                CLOUD_CONFIG.projectId.indexOf('YOUR_') !== 0 && CLOUD_CONFIG.apiKey.indexOf('YOUR_') !== 0);
+        }
+        function cloudDocUrl() {
+            return 'https://firestore.googleapis.com/v1/projects/' + CLOUD_CONFIG.projectId +
+                '/databases/(default)/documents/' + CLOUD_CONFIG.docPath;
+        }
+        function cloudAuthLoad() { try { return JSON.parse(localStorage.getItem(CLOUD_LS_KEY) || 'null'); } catch (e) { return null; } }
+        function cloudAuthStore(a) { try { localStorage.setItem(CLOUD_LS_KEY, JSON.stringify(a)); } catch (e) {} }
+        function cloudAuthClear() { try { localStorage.removeItem(CLOUD_LS_KEY); } catch (e) {} }
+        function cloudIsSignedIn() { const a = cloudAuthLoad(); return !!(a && a.refreshToken); }
+
+        async function cloudFetchRates() {
+            if (!cloudReady()) return null;
+            const res = await fetch(cloudDocUrl() + '?key=' + encodeURIComponent(CLOUD_CONFIG.apiKey), { cache: 'no-store' });
+            if (!res.ok) throw new Error('read ' + res.status);
+            const doc = await res.json();
+            const raw = (doc && doc.fields && doc.fields.json) ? doc.fields.json.stringValue : null;
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !parsed.rates) return null;
+            return { rates: parsed.rates, savedAt: parsed.savedAt || null };
+        }
+        async function cloudSignIn(email, password) {
+            const url = 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + encodeURIComponent(CLOUD_CONFIG.apiKey);
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: password, returnSecureToken: true }) });
+            const data = await res.json();
+            if (!res.ok) throw new Error((data && data.error && data.error.message) || 'login failed');
+            cloudAuthStore({ email: data.email, uid: data.localId, idToken: data.idToken, refreshToken: data.refreshToken,
+                expiresAt: Date.now() + (parseInt(data.expiresIn || '3600', 10) * 1000) });
+            return data.localId;
+        }
+        async function cloudGetToken() {
+            const a = cloudAuthLoad();
+            if (!a || !a.refreshToken) return null;
+            if (a.idToken && a.expiresAt && Date.now() < a.expiresAt - 60000) return a.idToken;
+            const res = await fetch('https://securetoken.googleapis.com/v1/token?key=' + encodeURIComponent(CLOUD_CONFIG.apiKey), {
+                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(a.refreshToken) });
+            const data = await res.json();
+            if (!res.ok) { cloudAuthClear(); return null; }
+            a.idToken = data.id_token; a.refreshToken = data.refresh_token || a.refreshToken;
+            a.expiresAt = Date.now() + (parseInt(data.expires_in || '3600', 10) * 1000);
+            cloudAuthStore(a);
+            return a.idToken;
+        }
+        async function cloudWriteRates(rates, savedAt) {
+            if (!cloudReady()) throw new Error('CLOUD_NOT_CONFIGURED');
+            const token = await cloudGetToken();
+            if (!token) throw new Error('NOT_SIGNED_IN');
+            const body = { fields: { json: { stringValue: JSON.stringify({ rates: rates, savedAt: savedAt }) } } };
+            const res = await fetch(cloudDocUrl() + '?key=' + encodeURIComponent(CLOUD_CONFIG.apiKey) + '&updateMask.fieldPaths=json', {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(body) });
+            if (!res.ok) { const t = await res.text(); throw new Error('write ' + res.status + ' ' + String(t).slice(0, 140)); }
+            return true;
+        }
+        async function loadRatesFromCloud(manual) {
+            if (!cloudReady()) { if (manual) showToast('クラウド未設定です（CLOUD_CONFIG を設定してください）'); return; }
+            try {
+                const remote = await cloudFetchRates();
+                if (!remote) { if (manual) showToast('クラウドに相場がまだありません'); updateCloudUI(); return; }
+                const stamp = remote.savedAt || '';
+                if (cloudLastApplied && stamp && stamp === cloudLastApplied) { if (manual) showToast('最新の相場です'); return; }
+                cloudLastApplied = stamp;
+                RATE_STATE = { rates: Object.assign({}, DEFAULT_RATES, remote.rates), savedAt: remote.savedAt || null };
+                try { localStorage.setItem(RATE_LS_KEY, JSON.stringify({ rates: RATE_STATE.rates, savedAt: RATE_STATE.savedAt, fromCloud: true })); } catch (e) {}
+                applyRatesEverywhere();
+                renderRateEditor();
+                updateCloudUI();
+                showToast('クラウドの相場を反映しました');
+            } catch (e) { if (manual) showToast('クラウド読込に失敗しました'); }
+        }
+        async function cloudPushCurrentRates() {
+            if (!cloudReady()) return;
+            try {
+                await cloudWriteRates(RATE_STATE.rates, RATE_STATE.savedAt);
+                cloudLastApplied = RATE_STATE.savedAt;
+                updateCloudUI();
+                showToast('全端末に反映しました');
+            } catch (e) {
+                if (String((e && e.message) || e).indexOf('NOT_SIGNED_IN') >= 0) showToast('管理者ログインすると全端末に反映できます');
+                else showToast('クラウド保存に失敗（この端末のみ保存）');
+            }
+        }
+        function startCloudPolling() {
+            if (!cloudReady() || cloudPollTimer) return;
+            cloudPollTimer = setInterval(function () { loadRatesFromCloud(false); }, CLOUD_POLL_MS);
+            document.addEventListener('visibilitychange', function () { if (!document.hidden) loadRatesFromCloud(false); });
+        }
+        async function cloudLoginFromPanel() {
+            if (!cloudReady()) { showToast('クラウド未設定です（CLOUD_CONFIG を設定してください）'); return; }
+            const em = (document.getElementById('cloudEmailInput') || {}).value || '';
+            const pw = (document.getElementById('cloudPassInput') || {}).value || '';
+            if (!em || !pw) { showToast('メールとパスワードを入力してください'); return; }
+            try {
+                await cloudSignIn(em.trim(), pw);
+                const p = document.getElementById('cloudPassInput'); if (p) p.value = '';
+                updateCloudUI();
+                showToast('管理者ログインしました');
+                await loadRatesFromCloud(false);
+            } catch (e) { showToast('ログイン失敗：メール／パスワードをご確認ください'); }
+        }
+        function cloudLogout() { cloudAuthClear(); updateCloudUI(); showToast('ログアウトしました'); }
+        function updateCloudUI() {
+            const st = document.getElementById('cloudStatusText');
+            if (st) {
+                if (!cloudReady()) st.innerText = '未設定：CLOUD_CONFIG に Firebase の projectId と apiKey を入れ、enabled を true にすると有効になります。';
+                else if (cloudIsSignedIn()) st.innerText = '管理者ログイン中（' + (((cloudAuthLoad() || {}).email) || '') + '）。「保存して適用する」で全端末に反映されます。';
+                else st.innerText = '読み取りは全端末で有効です。更新を全端末に反映するには管理者ログインが必要です。';
+            }
+            const box = document.getElementById('cloudLoginBox');
+            if (box) { if (cloudIsSignedIn()) box.classList.add('hidden'); else box.classList.remove('hidden'); }
+        }
 
         // ===== 相場データ（毎週の更新用） =====
         const RATE_LS_KEY = 'golds_rates_v1';
@@ -1445,6 +1600,7 @@
             applyRatesEverywhere();
             closeRatePanel();
             showToast('✅ 相場を保存・適用しました');
+            cloudPushCurrentRates();
         }
         function resetRates() {
             if (!confirm('ファイル内蔵の初期相場に戻しますか？')) return;
@@ -1498,8 +1654,11 @@
             selectGem(GEM_DATABASE[0], false);
             recalculateGemWeight();
             refreshIcons();
+            updateCloudUI();
+            if (cloudReady()) { loadRatesFromCloud(false); startCloudPolling(); }
         });
     </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
